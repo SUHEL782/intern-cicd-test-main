@@ -1,0 +1,55 @@
+{
+  "events": {
+    "description": "Source (S3) sends events to target (Lambda). Need S3 bucket notification and lambda permission. Lambda needs basic execution role.",
+    "source": {
+      "resource_type": "aws_s3_bucket",
+      "actions": []
+    },
+    "target": {
+      "resource_type": "aws_lambda_function",
+      "actions": ["lambda:InvokeFunction"],
+      "iam_for_target": {
+        "type": "lambda_exec",
+        "actions": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+      }
+    },
+    "side_effects": [
+      "create_s3_bucket_notification",
+      "create_lambda_permission"
+    ]
+  },
+  "read": {
+    "description": "Target (EC2 or Lambda) reads objects from S3.",
+    "source": {
+      "resource_type": "aws_s3_bucket",
+      "actions": []
+    },
+    "target": {
+      "resource_type": ["aws_instance", "aws_lambda_function"],
+      "actions": ["s3:GetObject"],
+      "resource_arn_template": "arn:aws:s3:::{{bucket_name}}/*"
+    },
+    "side_effects": []
+  },
+  "connect": {
+    "description": "EC2 connects to RDS for database access. Requires security group rule, network access, and proper IAM role for DB credentials.",
+    "source": {
+      "resource_type": "aws_instance",
+      "actions": ["rds-db:connect"]
+    },
+    "target": {
+      "resource_type": "aws_db_instance",
+      "actions": [],
+      "resource_arn_template": "arn:aws:rds:{{region}}:{{account_id}}:db:{{db_instance_identifier}}"
+    },
+    "side_effects": [
+      "create_security_group_rule",
+      "allow_network_connection",
+      "attach_iam_role_for_db_credentials"
+    ]
+  }
+}
